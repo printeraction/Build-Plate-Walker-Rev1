@@ -1,0 +1,60 @@
+#include <Servo.h> 
+//initialize servos
+Servo servoleft;
+Servo servoright;
+
+const int numReadings = 10;  //number of readings to save in array 
+const int topheight = 370;  //distance reading to top of the printer
+
+int DistPin = A0;  // Light sensor's connected to analog pin 0
+int isdone[numReadings];    //array of past 10 isdowns
+int isdown = 0;  //1 if value is less than topheight, 0 if greater
+
+int index = 0;            //iterating integer in the for loop
+int total = 0;            //sum of all values in isdone
+float average = 0;        //average of isdone
+int state = 0;            //state of system (sensing or driving)
+
+void setup() {
+  //attach servo motors
+  servoleft.attach(5);
+  servoright.attach(6);
+  //keep motors still
+  servoleft.write(90);
+  servoright.write(90);
+
+  //set up array isdone
+  for (int thisReading = 0; thisReading < numReadings; thisReading++)
+    isdone[thisReading] = 0;
+}
+
+void loop() {
+  //driving state of sensor, can be changed to exhibit a different behavior
+  if (state==1){
+    servoleft.write(0);  //drive left motor
+    servoright.write(180);  //drive right motor
+  }
+  else {
+    if (analogRead(DistPin) <= topheight){
+      isdown = 1;} // registers if sensor things the print is done
+    else{
+      isdown = 0;} // registers if sensor reads print is still going
+     
+    total = total - isdone[index];  //subtracts oldest value from array total
+    isdone[index] = isdown;  //adds newest value to array 
+    total = total + isdone[index];  //adds newest value to array total
+    index = index + 1;  //goes to next step
+  
+    //if the index reaches the end of the array, loop around
+    if (index >= numReadings){
+      index = 0;}
+    
+    average = total / numReadings;   //calculate average
+    //if last 10 values are 1, switch states
+    if (average == 1){
+      delay(20000);  //delay for 20 seconds before activating
+      state=1;  //change state to activate motors
+    }    
+    delay(1000);  // delay for a second to space out readings
+  }
+}
